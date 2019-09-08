@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"sort"
 	"time"
 
 	"cloud.google.com/go/translate"
@@ -71,9 +72,32 @@ func translateTitle(feed *gofeed.Feed, tag language.Tag) error {
 	return nil
 }
 
+func filter(items []*gofeed.Item) []*gofeed.Item {
+	sort.SliceStable(items, func(i, j int) bool {
+		var l, r time.Time
+		if items[i].UpdatedParsed != nil {
+			l = *items[i].UpdatedParsed
+		} else if items[i].PublishedParsed != nil {
+			l = *items[i].PublishedParsed
+		}
+		if items[j].UpdatedParsed != nil {
+			r = *items[j].UpdatedParsed
+		} else if items[j].PublishedParsed != nil {
+			r = *items[j].PublishedParsed
+		}
+		return l.After(r)
+	})
+	if len(items) > 10 {
+		return items[0:10]
+	} else {
+		return items
+	}
+}
+
 func generate(feed *gofeed.Feed) *feeds.Feed {
-	items := make([]*feeds.Item, 0, len(feed.Items))
-	for _, item := range feed.Items {
+	filtered := filter(feed.Items)
+	items := make([]*feeds.Item, 0, len(filtered))
+	for _, item := range filtered {
 		var author *feeds.Author
 		if item.Author != nil {
 			author = &feeds.Author{Name: item.Author.Name, Email: item.Author.Email}

@@ -17,7 +17,12 @@ import (
 	"golang.org/x/oauth2/google"
 	"golang.org/x/text/language"
 	"google.golang.org/api/option"
+
+	cache "github.com/victorspringer/http-cache"
+	"github.com/victorspringer/http-cache/adapter/memory"
 )
+
+const cacheSeconds = 3600
 
 var httpClient = &http.Client{
 	Timeout: 30 * time.Second,
@@ -104,13 +109,30 @@ func run() error {
 			return
 		}
 		generated := generate(parsed)
+		w.Header().Set("Content-Type", "application/atom+xml")
+		w.Header().Set("Cache-Control", "public, max-age="+string(cacheSeconds))
 		if err := generated.WriteAtom(w); err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-		w.Header().Set("Content-Type", "application/atom+xml")
 	})
 
-	return http.ListenAndServe("localhost:8080", r)
+	memcached, err := memory.NewAdapter(
+		memory.AdapterWithAlgorithm(memory.LRU),
+		memory.AdapterWithCapacity(1024),
+	)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	cacheClient, err := cache.NewClient(
+		cache.ClientWithAdapter(memcached),
+		cache.ClientWithTTL(cacheSeconds*time.Second),
+	)
+	if err != nil {
+		return errors.WithStack(err)
+	}
+
+	return http.ListenAndServe("localhost:8080", cacheClient.Middleware(r))
 }
 
 func main() {

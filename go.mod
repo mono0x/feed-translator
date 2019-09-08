@@ -12,6 +12,7 @@ require (
 	github.com/mmcdole/goxpp v0.0.0-20181012175147-0068e33feabf // indirect
 	github.com/pkg/errors v0.8.1
 	github.com/stretchr/testify v1.4.0 // indirect
+	github.com/victorspringer/http-cache v0.0.0-20190721184638-fe78e97af707
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297 // indirect
 	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45
 	golang.org/x/text v0.3.2

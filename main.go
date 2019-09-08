@@ -74,17 +74,47 @@ func translateTitle(feed *gofeed.Feed, tag language.Tag) error {
 func generate(feed *gofeed.Feed) *feeds.Feed {
 	items := make([]*feeds.Item, 0, len(feed.Items))
 	for _, item := range feed.Items {
+		var author *feeds.Author
+		if item.Author != nil {
+			author = &feeds.Author{Name: item.Author.Name, Email: item.Author.Email}
+		}
+		var created time.Time
+		if item.PublishedParsed != nil {
+			created = *item.PublishedParsed
+		}
+		var updated time.Time
+		if item.UpdatedParsed != nil {
+			updated = *item.UpdatedParsed
+		}
 		items = append(items, &feeds.Item{
 			Title:       item.Title,
 			Description: item.Description,
 			Link:        &feeds.Link{Href: item.Link},
+			Author:      author,
+			Created:     created,
+			Updated:     updated,
 		})
+	}
+	var author *feeds.Author
+	if feed.Author != nil {
+		author = &feeds.Author{Name: feed.Author.Name, Email: feed.Author.Email}
+	}
+	var created time.Time
+	if feed.PublishedParsed != nil {
+		created = *feed.PublishedParsed
+	}
+	var updated time.Time
+	if feed.UpdatedParsed != nil {
+		updated = *feed.UpdatedParsed
 	}
 	return &feeds.Feed{
 		Title:       feed.Title,
 		Link:        &feeds.Link{Href: feed.Link},
 		Description: feed.Description,
 		Items:       items,
+		Author:      author,
+		Created:     created,
+		Updated:     updated,
 	}
 }
 

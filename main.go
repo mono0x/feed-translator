@@ -14,7 +14,6 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/gorilla/feeds"
 	"github.com/mmcdole/gofeed"
-	"github.com/pkg/errors"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/text/language"
 	"google.golang.org/api/option"
@@ -46,12 +45,12 @@ func translateTitle(feed *gofeed.Feed, tag language.Tag) error {
 	jsonData := os.Getenv("GOOGLE_CLIENT_CREDENTIALS")
 	credentials, err := google.CredentialsFromJSON(ctx, ([]byte)(jsonData), translate.Scope)
 	if err != nil {
-		return errors.WithStack(err)
+		return fmt.Errorf("%w", err)
 	}
 
 	client, err := translate.NewClient(ctx, option.WithCredentials(credentials))
 	if err != nil {
-		return errors.WithStack(err)
+		return fmt.Errorf("%w", err)
 	}
 	defer client.Close()
 
@@ -62,7 +61,7 @@ func translateTitle(feed *gofeed.Feed, tag language.Tag) error {
 
 	translations, err := client.Translate(ctx, inputs, tag, nil)
 	if err != nil {
-		return errors.WithStack(err)
+		return fmt.Errorf("%w", err)
 	}
 
 	for i, item := range feed.Items {
@@ -155,10 +154,12 @@ func run() error {
 		}
 		parsed, err := fetch(url)
 		if err != nil {
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 		if err := translateTitle(parsed, language.Japanese); err != nil {
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
@@ -166,6 +167,7 @@ func run() error {
 		w.Header().Set("Content-Type", "application/atom+xml")
 		w.Header().Set("Cache-Control", "public, max-age="+string(cacheSeconds))
 		if err := generated.WriteAtom(w); err != nil {
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 	})
@@ -175,7 +177,7 @@ func run() error {
 		memory.AdapterWithCapacity(1024),
 	)
 	if err != nil {
-		return errors.WithStack(err)
+		return fmt.Errorf("%w", err)
 	}
 
 	cacheClient, err := cache.NewClient(
@@ -183,7 +185,7 @@ func run() error {
 		cache.ClientWithTTL(cacheSeconds*time.Second),
 	)
 	if err != nil {
-		return errors.WithStack(err)
+		return fmt.Errorf("%w", err)
 	}
 
 	return http.ListenAndServe("localhost:8080", cacheClient.Middleware(r))

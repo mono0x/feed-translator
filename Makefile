@@ -2,7 +2,7 @@ GO=go
 GOBIN=$(PWD)/bin
 TESTOPTS=-coverprofile=result.coverprofile -v -race ./...
 BUILDOPTS=-tags netgo -installsuffix netgo -ldflags "-w -s -extldflags -static"
-BINARY=feed-translater
+BINARY=feed-translator
 
 all: deps test build
 
